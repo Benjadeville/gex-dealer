@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEX · Dealer Gamma Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #03050a;
+  --s1: #070c16;
+  --s2: #0b1220;
+  --border: #131d30;
+  --border2: #1a2840;
+  --text: #d4e4ff;
+  --muted: #3d5580;
+  --accent: #00d4ff;
+  --green: #00e5a0;
+  --red: #ff4060;
+  --orange: #ff8c00;
+  --yellow: #ffd600;
+  --purple: #9b6dff;
+  --mono: 'DM Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow-x: hidden; }
+
+/* SCANLINES */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,212,255,.012) 3px, rgba(0,212,255,.012) 4px);
+}
+
+/* HEADER */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; height: 52px;
+  border-bottom: 1px solid var(--border2);
+  background: linear-gradient(90deg, var(--s1), var(--bg) 50%, var(--s1));
+  position: sticky; top: 0; z-index: 100;
+}
+.logo {
+  display: flex; align-items: center; gap: 12px;
+}
+.logo-symbol {
+  width: 28px; height: 28px; position: relative; flex-shrink: 0;
+}
+.logo-symbol::before, .logo-symbol::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  border: 1.5px solid var(--accent);
+}
+.logo-symbol::after {
+  inset: 6px; border-color: var(--green);
+  animation: spin 8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.logo-name { font-size: .78rem; font-weight: 800; letter-spacing: 4px; color: #fff; text-transform: uppercase; }
+.logo-sub { font-family: var(--mono); font-size: .52rem; color: var(--muted); letter-spacing: 2px; margin-top: 2px; }
+
+.header-right { display: flex; align-items: center; gap: 20px; }
+.live-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: .6rem; color: var(--green); letter-spacing: 1px;
+}
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,229,160,.4); } 50% { opacity: .7; box-shadow: 0 0 0 5px rgba(0,229,160,0); } }
+.timestamp { font-family: var(--mono); font-size: .6rem; color: var(--muted); }
+
+/* MAIN */
+main { padding: 24px 28px; display: grid; gap: 20px; }
+
+/* SIGNAL STRIP */
+.signal-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+}
+.sig-card {
+  background: var(--s2); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 16px 18px;
+  position: relative; overflow: hidden;
+  transition: border-color .2s;
+}
+.sig-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.sig-card.positive::before { background: linear-gradient(90deg, var(--green), transparent); }
+.sig-card.negative::before { background: linear-gradient(90deg, var(--red), transparent); }
+.sig-card.neutral::before { background: linear-gradient(90deg, var(--orange), transparent); }
+.sig-card.info::before { background: linear-gradient(90deg, var(--accent), transparent); }
+.sig-card:hover { border-color: var(--border); }
+
+.sig-label { font-family: var(--mono); font-size: .55rem; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+.sig-value { font-size: 1.6rem; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.sig-value.pos { color: var(--green); }
+.sig-value.neg { color: var(--red); }
+.sig-value.neu { color: var(--orange); }
+.sig-value.acc { color: var(--accent); }
+.sig-sub { font-family: var(--mono); font-size: .58rem; color: var(--muted); }
+.sig-change { font-family: var(--mono); font-size: .62rem; margin-top: 6px; }
+
+/* TWO COLUMN */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.three-col { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+
+/* PANELS */
+.panel {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden;
+}
+.panel-header {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--s2);
+}
+.panel-title { font-size: .72rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #fff; }
+.panel-meta { font-family: var(--mono); font-size: .56rem; color: var(--muted); }
+.panel-body { padding: 18px; }
+
+/* CHART CONTAINERS */
+.chart-wrap { position: relative; }
+
+/* GAMMA FLIP INDICATOR */
+.flip-zone {
+  background: var(--s2); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.flip-label { font-family: var(--mono); font-size: .56rem; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
+.flip-price {
+  font-size: 2rem; font-weight: 800; color: var(--yellow); line-height: 1;
+  display: flex; align-items: flex-end; gap: 8px;
+}
+.flip-price span { font-family: var(--mono); font-size: .65rem; color: var(--muted); margin-bottom: 4px; }
+.flip-distance {
+  font-family: var(--mono); font-size: .7rem;
+  padding: 4px 10px; border-radius: 3px; display: inline-block; width: fit-content;
+}
+.flip-distance.above { background: rgba(0,229,160,.1); color: var(--green); border: 1px solid rgba(0,229,160,.2); }
+.flip-distance.below { background: rgba(255,64,96,.1); color: var(--red); border: 1px solid rgba(255,64,96,.2); }
+
+/* REGIME BADGE */
+.regime-badge {
+  padding: 10px 14px; border-radius: 4px;
+  font-weight: 800; font-size: .78rem; letter-spacing: 2px; text-transform: uppercase;
+  text-align: center;
+}
+.regime-badge.long-gamma {
+  background: rgba(0,229,160,.08); border: 1px solid rgba(0,229,160,.3); color: var(--green);
+}
+.regime-badge.short-gamma {
+  background: rgba(255,64,96,.08); border: 1px solid rgba(255,64,96,.3); color: var(--red);
+}
+
+/* EXPIRY TABLE */
+.expiry-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: .68rem; }
+.expiry-table th { color: var(--muted); font-weight: 500; text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: .55rem; letter-spacing: 1px; text-transform: uppercase; }
+.expiry-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+.expiry-table tr:last-child td { border: none; }
+.expiry-table tr:hover td { background: var(--s2); }
+.bar-cell { display: flex; align-items: center; gap: 8px; }
+.mini-bar { height: 4px; border-radius: 2px; min-width: 2px; }
+
+/* POSITIONING BREAKDOWN */
+.pos-list { display: flex; flex-direction: column; gap: 8px; }
+.pos-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--s2); border-radius: 4px; border: 1px solid var(--border); }
+.pos-name { font-size: .72rem; font-weight: 600; }
+.pos-sub { font-family: var(--mono); font-size: .55rem; color: var(--muted); margin-top: 2px; }
+.pos-right { text-align: right; }
+.pos-val { font-family: var(--mono); font-size: .78rem; font-weight: 500; }
+.pos-chg { font-family: var(--mono); font-size: .58rem; margin-top: 2px; }
+
+/* SIGNAL MATRIX */
+.matrix { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mx-item { padding: 12px; background: var(--s2); border-radius: 4px; border: 1px solid var(--border); }
+.mx-label { font-family: var(--mono); font-size: .54rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+.mx-signal { font-size: .8rem; font-weight: 700; letter-spacing: 1px; }
+.mx-signal.bull { color: var(--green); }
+.mx-signal.bear { color: var(--red); }
+.mx-signal.neut { color: var(--orange); }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* BOTTOM NOTE */
+.disclaimer {
+  font-family: var(--mono); font-size: .54rem; color: var(--muted);
+  text-align: center; padding: 16px 28px 24px;
+  border-top: 1px solid var(--border); margin-top: 4px;
+  line-height: 1.8;
+}
+.disclaimer a { color: var(--accent); text-decoration: none; }
+
+@media (max-width: 900px) {
+  .signal-strip { grid-template-columns: 1fr 1fr; }
+  .two-col, .three-col { grid-template-columns: 1fr; }
+  main { padding: 16px; }
+}
+@media (max-width: 500px) {
+  .signal-strip { grid-template-columns: 1fr 1fr; }
+  header { padding: 0 14px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-symbol"></div>
+    <div>
+      <div class="logo-name">GEX · Dealer Gamma</div>
+      <div class="logo-sub">S&P 500 · Options Flow · Dealer Positioning</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div>SIMULATED · EOD DATA</div>
+    <div class="timestamp" id="ts"></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- SIGNAL STRIP -->
+  <div class="signal-strip">
+    <div class="sig-card positive">
+      <div class="sig-label">Dealer GEX</div>
+      <div class="sig-value pos">+$4.7B</div>
+      <div class="sig-sub">SPY · per 1% move</div>
+      <div class="sig-change" style="color:var(--green)">↑ +$1.2B since expiry</div>
+    </div>
+    <div class="sig-card positive">
+      <div class="sig-label">Gamma Regime</div>
+      <div class="sig-value pos" style="font-size:1.1rem;padding-top:4px">LONG Γ</div>
+      <div class="sig-sub">Dampening volatility</div>
+      <div class="sig-change" style="color:var(--green)">↑ Flipped 3 sessions ago</div>
+    </div>
+    <div class="sig-card neutral">
+      <div class="sig-label">Gamma Flip</div>
+      <div class="sig-value neu">5,480</div>
+      <div class="sig-sub">Key level · SPX</div>
+      <div class="sig-change" style="color:var(--orange)">↔ Spot 142pts above</div>
+    </div>
+    <div class="sig-card info">
+      <div class="sig-label">Next Major Expiry</div>
+      <div class="sig-value acc" style="font-size:1.2rem;padding-top:4px">8D</div>
+      <div class="sig-sub">$3.2T notional</div>
+      <div class="sig-change" style="color:var(--accent)">→ Apr 4 monthly</div>
+    </div>
+  </div>
+
+  <!-- MAIN CHARTS ROW -->
+  <div class="three-col">
+
+    <!-- GEX by Strike -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">GEX by Strike · SPX</div>
+        <div class="panel-meta">Net dealer gamma exposure / 1% move</div>
+      </div>
+      <div class="panel-body">
+        <div class="chart-wrap" style="height:280px">
+          <canvas id="gexChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right side: Flip zone + Regime -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Gamma Flip Zone</div>
+          <div class="panel-meta">Critical level</div>
+        </div>
+        <div class="panel-body" style="display:flex;flex-direction:column;gap:10px">
+          <div class="flip-zone">
+            <div class="flip-label">Flip Level · SPX</div>
+            <div class="flip-price">5,480 <span>USD</span></div>
+            <div class="flip-distance above">Spot 142pts above → Long Gamma</div>
+          </div>
+          <div class="regime-badge long-gamma">✦ LONG GAMMA REGIME</div>
+          <div style="font-family:var(--mono);font-size:.6rem;color:var(--muted);line-height:1.7">
+            Dealers are net long gamma. They BUY dips and SELL rallies to stay delta-neutral — acting as a stabilizing force.
+            Realized vol suppressed. Mean reversion favored.
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Signal Matrix</div>
+          <div class="panel-meta">Cross-asset confluence</div>
+        </div>
+        <div class="panel-body">
+          <div class="matrix">
+            <div class="mx-item"><div class="mx-label">GEX Trend</div><div class="mx-signal bull">RISING ↑</div></div>
+            <div class="mx-item"><div class="mx-label">VIX Term</div><div class="mx-signal bull">NORMAL ✓</div></div>
+            <div class="mx-item"><div class="mx-label">Put/Call</div><div class="mx-signal neut">NEUTRAL</div></div>
+            <div class="mx-item"><div class="mx-label">Vol Surface</div><div class="mx-signal bull">HEALING ↑</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM ROW -->
+  <div class="two-col">
+
+    <!-- GEX History -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">GEX Historical · 60 Days</div>
+        <div class="panel-meta">Total market GEX · $B</div>
+      </div>
+      <div class="panel-body">
+        <div class="chart-wrap" style="height:200px">
+          <canvas id="histChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expiry Breakdown -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Upcoming Expirations</div>
+        <div class="panel-meta">Notional by expiry · OI distribution</div>
+      </div>
+      <div class="panel-body">
+        <table class="expiry-table">
+          <thead>
+            <tr><th>Expiry</th><th>Notional</th><th>GEX Impact</th><th>Distribution</th></tr>
+          </thead>
+          <tbody id="expiry-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- POSITIONING ROW -->
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">ETF Short Interest Context</div>
+        <div class="panel-meta">% of total equity volume · 30d</div>
+      </div>
+      <div class="panel-body">
+        <div class="chart-wrap" style="height:190px">
+          <canvas id="etfChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Systematic Positioning</div>
+        <div class="panel-meta">CTA · Vol-targeting · Risk Parity</div>
+      </div>
+      <div class="panel-body">
+        <div class="pos-list" id="pos-list"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="disclaimer">
+  ⚠️ This dashboard uses <strong>simulated / synthetic data</strong> for portfolio demonstration purposes only. 
+  Not financial advice. In production, connect to <a href="https://www.cboe.com/us/options/market_statistics/" target="_blank">CBOE data</a>, 
+  <a href="https://unusualwhales.com" target="_blank">Unusual Whales API</a>, or compute GEX from options chain data via yfinance + scipy. 
+  · <a href="https://github.com/YOUR-USERNAME/gex-dealer" target="_blank">Source on GitHub</a>
+</div>
+
+<script>
+/* ── TIMESTAMP ── */
+const ts = document.getElementById('ts');
+function updateTs() {
+  ts.textContent = new Date().toLocaleString('en-US',{
+    month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'
+  });
+}
+updateTs(); setInterval(updateTs, 1000);
+
+/* ── CHART DEFAULTS ── */
+Chart.defaults.color = '#3d5580';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 10;
+
+/* ── GEX BY STRIKE ── */
+const strikes = [5200,5250,5300,5350,5400,5450,5480,5500,5550,5600,5650,5700,5750,5800];
+const gexValues = [-0.8,-1.2,-0.6,0.9,1.8,2.4,3.1,4.7,3.8,2.9,1.6,0.8,0.3,-0.2];
+const spotIdx = strikes.indexOf(5622);
+
+new Chart(document.getElementById('gexChart'), {
+  type: 'bar',
+  data: {
+    labels: strikes.map(s => s.toLocaleString()),
+    datasets: [{
+      label: 'Dealer GEX ($B)',
+      data: gexValues,
+      backgroundColor: gexValues.map(v => v >= 0 ? 'rgba(0,229,160,0.55)' : 'rgba(255,64,96,0.55)'),
+      borderColor: gexValues.map(v => v >= 0 ? '#00e5a0' : '#ff4060'),
+      borderWidth: 1,
+      borderRadius: 2,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0b1220',
+        borderColor: '#1a2840',
+        borderWidth: 1,
+        callbacks: {
+          label: ctx => ` GEX: $${ctx.raw.toFixed(1)}B`,
+          afterLabel: ctx => ctx.raw >= 0 ? ' → Dealer LONG Γ' : ' → Dealer SHORT Γ'
+        }
+      },
+      annotation: {
+        annotations: {}
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: 'rgba(26,40,64,0.5)', lineWidth: 1 },
+        border: { color: '#131d30' },
+        ticks: { maxRotation: 45, font: { size: 9 } }
+      },
+      y: {
+        grid: { color: 'rgba(26,40,64,0.5)', lineWidth: 1 },
+        border: { color: '#131d30' },
+        title: { display: true, text: 'GEX ($B)', color: '#3d5580', font: { size: 9 } },
+        ticks: { callback: v => '$' + v + 'B' }
+      }
+    }
+  }
+});
+
+/* ── HISTORICAL GEX ── */
+function genHistory() {
+  const out = [];
+  let v = -2.1;
+  for (let i = 0; i < 60; i++) {
+    v += (Math.random() - 0.46) * 0.6;
+    v = Math.max(-6, Math.min(8, v));
+    // Big expiry resets every ~21 days
+    if (i === 21 || i === 42) { v = (Math.random() - 0.4) * 3; }
+    out.push(parseFloat(v.toFixed(2)));
+  }
+  // End positive (our current scenario)
+  for (let i = 50; i < 60; i++) out[i] = Math.abs(out[i]);
+  return out;
+}
+const histData = genHistory();
+const histLabels = Array.from({length:60}, (_,i) => {
+  const d = new Date(2026, 0, 22 + i);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+});
+
+new Chart(document.getElementById('histChart'), {
+  type: 'line',
+  data: {
+    labels: histLabels,
+    datasets: [{
+      data: histData,
+      borderColor: histData.map(v => v >= 0 ? '#00e5a0' : '#ff4060'),
+      segment: {
+        borderColor: ctx => ctx.p1.parsed.y >= 0 ? '#00e5a0' : '#ff4060',
+      },
+      backgroundColor: ctx => {
+        const chart = ctx.chart;
+        const {ctx: c, chartArea} = chart;
+        if (!chartArea) return 'transparent';
+        const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+        gradient.addColorStop(0, 'rgba(0,229,160,0.15)');
+        gradient.addColorStop(0.5, 'rgba(0,229,160,0.03)');
+        gradient.addColorStop(1, 'rgba(255,64,96,0.05)');
+        return gradient;
+      },
+      fill: true,
+      tension: 0.3,
+      borderWidth: 1.5,
+      pointRadius: 0,
+      pointHitRadius: 8,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0b1220', borderColor: '#1a2840', borderWidth: 1,
+        callbacks: { label: ctx => ` GEX: $${ctx.raw}B` }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, border: { color: '#131d30' }, ticks: { maxTicksLimit: 8, font:{size:9} } },
+      y: {
+        grid: { color: 'rgba(26,40,64,0.5)' }, border: { color: '#131d30' },
+        ticks: { callback: v => '$' + v + 'B' },
+        // Zero line
+      }
+    }
+  }
+});
+
+/* ── ETF VOLUME ── */
+const etfVol = [22,24,28,26,29,31,27,30,33,35,38,41,39,37,40,43,45,42,44,47,46,43,40,38,36,34,35,37,36,35];
+const etfLabels = etfVol.map((_,i) => {
+  const d = new Date(2026, 1, 22 + i);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+});
+
+new Chart(document.getElementById('etfChart'), {
+  type: 'line',
+  data: {
+    labels: etfLabels,
+    datasets: [{
+      label: 'ETF % of Volume',
+      data: etfVol,
+      borderColor: '#9b6dff',
+      backgroundColor: 'rgba(155,109,255,0.08)',
+      fill: true, tension: 0.4, borderWidth: 1.5, pointRadius: 0, pointHitRadius: 8,
+    }, {
+      label: 'Historic avg (22%)',
+      data: new Array(30).fill(22),
+      borderColor: 'rgba(61,85,128,0.6)',
+      borderWidth: 1, borderDash: [4,4], pointRadius: 0, fill: false,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, labels: { boxWidth: 8, font: {size:9} } },
+      tooltip: {
+        backgroundColor: '#0b1220', borderColor: '#1a2840', borderWidth: 1,
+        callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}%` }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, border: { color: '#131d30' }, ticks: { maxTicksLimit: 6, font:{size:9} } },
+      y: { grid: { color: 'rgba(26,40,64,0.5)' }, border: { color: '#131d30' }, ticks: { callback: v => v + '%' } }
+    }
+  }
+});
+
+/* ── EXPIRY TABLE ── */
+const expiries = [
+  { label: 'Mar 28 (Fri)', notional: '$840B', gex: '+$0.3B', pct: 26, color: '#9b6dff' },
+  { label: 'Apr 4 (Monthly)', notional: '$3.2T', gex: '+$1.8B', pct: 100, color: '#00d4ff' },
+  { label: 'Apr 17 (OPEX)', notional: '$1.4T', gex: '+$0.9B', pct: 44, color: '#00e5a0' },
+  { label: 'Jun 20 (Quarterly)', notional: '$5.1T', gex: '+$2.1B', pct: 66, color: '#ffd600' },
+];
+const tbody = document.getElementById('expiry-tbody');
+expiries.forEach(e => {
+  tbody.innerHTML += `<tr>
+    <td>${e.label}</td>
+    <td style="color:var(--text)">${e.notional}</td>
+    <td style="color:var(--green)">${e.gex}</td>
+    <td>
+      <div class="bar-cell">
+        <div class="mini-bar" style="width:${e.pct}px;background:${e.color}"></div>
+        <span style="color:var(--muted);font-size:.54rem">${e.pct}%</span>
+      </div>
+    </td>
+  </tr>`;
+});
+
+/* ── POSITIONING ── */
+const positions = [
+  { name: 'CTA / Trend-Following', sub: 'Systematic macro funds', val: '-22%', chg: '↑ Rebuilding', cpos: 'var(--orange)', cneg: 'var(--green)' },
+  { name: 'Volatility Targeting', sub: 'Risk-parity, 60/40', val: '-31%', chg: '↑ Buying back', cpos: 'var(--orange)', cneg: 'var(--green)' },
+  { name: 'Multi-Strat HFs', sub: 'Short ETF hedges', val: '⬛ Large short', chg: '↓ Unwind risk HIGH', cpos: 'var(--red)', cneg: 'var(--red)' },
+  { name: 'Retail Investors', sub: 'Self-directed / Robinhood', val: '+$2.1B', chg: '✓ Buying dips', cpos: 'var(--green)', cneg: 'var(--green)' },
+];
+const pl = document.getElementById('pos-list');
+positions.forEach(p => {
+  pl.innerHTML += `<div class="pos-item">
+    <div><div class="pos-name">${p.name}</div><div class="pos-sub">${p.sub}</div></div>
+    <div class="pos-right">
+      <div class="pos-val" style="color:${p.cpos}">${p.val}</div>
+      <div class="pos-chg" style="color:${p.cneg}">${p.chg}</div>
+    </div>
+  </div>`;
+});
+</script>
+</body>
+</html>
