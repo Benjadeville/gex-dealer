@@ -1,6 +1,6 @@
 # 📊 GEX · Dealer Gamma Dashboard
 
-> **Live demo → [your-username.github.io/gex-dealer](https://your-username.github.io/gex-dealer)**
+> **Live demo → [Benjadeville.github.io/gex-dealer](https://Benjadeville.github.io/gex-dealer)**
 
 A real-time (or EOD) options market microstructure dashboard tracking **dealer gamma exposure (GEX)** — one of the most actionable signals in institutional equity trading.
 
