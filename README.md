@@ -53,7 +53,6 @@ yfinance  → spot price, options chain (calls + puts)
 pandas    → chain processing, strike aggregation
 scipy     → implied vol solver (optional)
 HTML/JS   → dashboard UI (Chart.js, zero dependencies)
-GitHub Pages → free deployment, auto-updates via Actions
 ```
 
 ---
@@ -61,7 +60,7 @@ GitHub Pages → free deployment, auto-updates via Actions
 ## Quickstart
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/gex-dealer.git
+git clone https://github.com/Benjadeville/gex-dealer.git
 cd gex-dealer
 pip install yfinance pandas numpy scipy
 python compute_gex.py --ticker SPY --export data/gex.json
