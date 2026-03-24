@@ -146,7 +146,7 @@ For live data, add a GitHub Action that runs `compute_gex.py` on a schedule and 
 
 ## Related Projects in This Portfolio
 
-- [`cta-positioning-model`](https://github.com/Benjadeville/cta-positioning-model) — CTA trend-following exposure simulator
+- [`cta-positioning-model`](https://github.com/Benjadeville/cta-positioning) — CTA trend-following exposure simulator
 - [`etf-short-monitor`](https://github.com/Benjadeville/etf-short-monitor) — ETF short interest as % of total volume tracker
 
 ---
